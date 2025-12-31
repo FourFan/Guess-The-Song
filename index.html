@@ -32,9 +32,6 @@
   <title>Guess The Song</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Spotify Web Playback SDK -->
-  <script src="https://sdk.scdn.co/spotify-player.js"></script>
-
   <style>
     body {
       margin: 0;
@@ -75,6 +72,33 @@
     .loading-text {
       font-size: 14px;
       color: #666;
+      margin-bottom: 20px;
+    }
+    .skip-btn {
+      display: none;
+      padding: 10px 24px;
+      background: transparent;
+      border: 1px solid #666;
+      color: #999;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .skip-btn:hover {
+      border-color: #9c27b0;
+      color: #9c27b0;
+    }
+    .skip-btn.visible {
+      display: block;
+    }
+    .error-text {
+      display: none;
+      color: #f44336;
+      font-size: 12px;
+      margin-top: 10px;
+      text-align: center;
+      max-width: 300px;
     }
   </style>
 </head>
@@ -82,17 +106,66 @@
   <div id="loading" class="loading">
     <div class="logo">🎵</div>
     <div class="app-name">Guess The Song</div>
-    <div class="spinner"></div>
-    <div class="loading-text">Loading game...</div>
+    <div class="spinner" id="spinner"></div>
+    <div class="loading-text" id="loading-text">Loading game...</div>
+    <button class="skip-btn" id="skip-btn" onclick="hideLoading()">Skip Loading</button>
+    <div class="error-text" id="error-text"></div>
   </div>
+
+  <!-- Spotify Web Playback SDK - 非同步載入，不阻塞頁面 -->
+  <script src="https://sdk.scdn.co/spotify-player.js" async defer onerror="handleSdkError()"></script>
+
   <script src="flutter_bootstrap.js" async></script>
+
   <script>
-    window.addEventListener('flutter-first-frame', function() {
+    var loadingStartTime = Date.now();
+    var loadingHidden = false;
+
+    function hideLoading() {
+      if (loadingHidden) return;
+      loadingHidden = true;
       var loading = document.getElementById('loading');
       if (loading) {
         loading.style.display = 'none';
       }
+    }
+
+    function handleSdkError() {
+      console.warn('Spotify SDK failed to load, but app will continue');
+    }
+
+    // Flutter 載入完成
+    window.addEventListener('flutter-first-frame', function() {
+      hideLoading();
     });
+
+    // 5 秒後顯示 Skip 按鈕
+    setTimeout(function() {
+      var skipBtn = document.getElementById('skip-btn');
+      var loadingText = document.getElementById('loading-text');
+      if (skipBtn && !loadingHidden) {
+        skipBtn.classList.add('visible');
+        loadingText.textContent = 'Loading is taking longer than expected...';
+      }
+    }, 5000);
+
+    // 30 秒後自動隱藏 loading（防止永久卡住）
+    setTimeout(function() {
+      if (!loadingHidden) {
+        console.warn('Loading timeout after 30 seconds');
+        hideLoading();
+      }
+    }, 30000);
+
+    // 每秒更新載入時間
+    setInterval(function() {
+      if (loadingHidden) return;
+      var elapsed = Math.floor((Date.now() - loadingStartTime) / 1000);
+      var loadingText = document.getElementById('loading-text');
+      if (loadingText && elapsed > 3) {
+        loadingText.textContent = 'Loading... (' + elapsed + 's)';
+      }
+    }, 1000);
   </script>
 </body>
 </html>
