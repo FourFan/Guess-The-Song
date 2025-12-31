@@ -14,7 +14,7 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="/">
+  <base href="/Guess-The-Song/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -148,7 +148,7 @@
       if (loadingHidden) return;
       var elapsed = Math.floor((Date.now() - loadingStartTime) / 1000);
       var loadingText = document.getElementById('loading-text');
-      if (loadingText && elapsed > 3 && elapsed <= 10) {
+      if (loadingText && elapsed > 3) {
         loadingText.textContent = 'Loading... (' + elapsed + 's)';
       }
     }, 1000);
