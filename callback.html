@@ -129,9 +129,14 @@
                 sessionStorage.setItem('spotify_token_timestamp', Date.now().toString());
                 console.log('DEBUG callback: Token saved to sessionStorage');
 
-                // Redirect to main app (token is already in sessionStorage)
-                // 使用 replace + reload 確保不使用快取
-                window.location.replace(basePath);
+                // 如果是 popup 視窗，通知父視窗並關閉
+                if (window.opener) {
+                    window.opener.postMessage('spotify_login_success', '*');
+                    window.close();
+                } else {
+                    // 否則重導向到主頁面
+                    window.location.replace(basePath);
+                }
 
             } catch (err) {
                 // Token exchange failed (code already used or expired)
