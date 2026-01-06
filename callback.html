@@ -75,8 +75,8 @@
                 return;
             }
 
-            // Check if already logged in (token exists in sessionStorage)
-            const existingToken = sessionStorage.getItem('spotify_access_token');
+            // Check if already logged in (token exists in localStorage)
+            const existingToken = localStorage.getItem('spotify_access_token');
             if (existingToken) {
                 // Already logged in, redirect to home
                 console.log('DEBUG callback: Already has token, redirecting');
@@ -84,8 +84,8 @@
                 return;
             }
 
-            // Get the code verifier from sessionStorage
-            const codeVerifier = sessionStorage.getItem('spotify_code_verifier');
+            // Get the code verifier from localStorage (使用 localStorage 以便 popup 視窗可以讀取)
+            const codeVerifier = localStorage.getItem('spotify_code_verifier');
             console.log('DEBUG callback: codeVerifier =', codeVerifier ? 'exists' : 'null');
             if (!codeVerifier) {
                 // No verifier means session expired or already used, redirect to home
@@ -122,12 +122,12 @@
                 console.log('DEBUG callback: Token exchange successful');
 
                 // Clear the code verifier
-                sessionStorage.removeItem('spotify_code_verifier');
+                localStorage.removeItem('spotify_code_verifier');
 
-                // Save token to sessionStorage (so AuthProvider can find it)
-                sessionStorage.setItem('spotify_access_token', accessToken);
-                sessionStorage.setItem('spotify_token_timestamp', Date.now().toString());
-                console.log('DEBUG callback: Token saved to sessionStorage');
+                // Save token to localStorage (使用 localStorage 以便主視窗可以讀取)
+                localStorage.setItem('spotify_access_token', accessToken);
+                localStorage.setItem('spotify_token_timestamp', Date.now().toString());
+                console.log('DEBUG callback: Token saved to localStorage');
 
                 // 如果是 popup 視窗，通知父視窗並關閉
                 if (window.opener) {
@@ -142,7 +142,7 @@
                 // Token exchange failed (code already used or expired)
                 console.error('DEBUG callback: Token exchange failed:', err.message);
                 // Clear verifier and redirect to home
-                sessionStorage.removeItem('spotify_code_verifier');
+                localStorage.removeItem('spotify_code_verifier');
                 window.location.href = basePath;
             }
         }
