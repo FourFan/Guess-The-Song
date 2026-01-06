@@ -48,12 +48,20 @@
     </div>
     <script>
         const clientId = '0ef8dfe4fff64ceab824505fc1b3f963';
-        const redirectUri = 'https://fourfan.github.io/Guess-The-Song/callback.html';
+
+        // 根據環境判斷路徑
+        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+        const basePath = isLocal ? '/' : '/Guess-The-Song/';
+        const redirectUri = isLocal
+            ? 'http://127.0.0.1:8888/callback.html'
+            : 'https://fourfan.github.io/Guess-The-Song/callback.html';
 
         async function handleCallback() {
+            console.log('DEBUG callback: Starting handleCallback');
             const params = new URLSearchParams(window.location.search);
             const code = params.get('code');
             const error = params.get('error');
+            console.log('DEBUG callback: code =', code ? code.substring(0, 20) + '...' : 'null');
 
             if (error) {
                 showError('Login failed: ' + (params.get('error_description') || error));
@@ -62,7 +70,8 @@
 
             if (!code) {
                 // No code, redirect to home
-                window.location.href = '/Guess-The-Song/';
+                console.log('DEBUG callback: No code, redirecting to home');
+                window.location.href = basePath;
                 return;
             }
 
@@ -70,15 +79,18 @@
             const existingToken = sessionStorage.getItem('spotify_access_token');
             if (existingToken) {
                 // Already logged in, redirect to home
-                window.location.href = '/Guess-The-Song/';
+                console.log('DEBUG callback: Already has token, redirecting');
+                window.location.href = basePath;
                 return;
             }
 
             // Get the code verifier from sessionStorage
             const codeVerifier = sessionStorage.getItem('spotify_code_verifier');
+            console.log('DEBUG callback: codeVerifier =', codeVerifier ? 'exists' : 'null');
             if (!codeVerifier) {
                 // No verifier means session expired or already used, redirect to home
-                window.location.href = '/Guess-The-Song/';
+                console.log('DEBUG callback: No verifier, redirecting to home');
+                window.location.href = basePath;
                 return;
             }
 
@@ -107,25 +119,33 @@
 
                 const data = await response.json();
                 const accessToken = data.access_token;
+                console.log('DEBUG callback: Token exchange successful');
 
                 // Clear the code verifier
                 sessionStorage.removeItem('spotify_code_verifier');
 
-                // Redirect to main app with token in hash
-                window.location.href = '/Guess-The-Song/#access_token=' + encodeURIComponent(accessToken);
+                // Save token to sessionStorage (so AuthProvider can find it)
+                sessionStorage.setItem('spotify_access_token', accessToken);
+                sessionStorage.setItem('spotify_token_timestamp', Date.now().toString());
+                console.log('DEBUG callback: Token saved to sessionStorage');
+
+                // Redirect to main app (token is already in sessionStorage)
+                // 使用 replace + reload 確保不使用快取
+                window.location.replace(basePath);
 
             } catch (err) {
                 // Token exchange failed (code already used or expired)
+                console.error('DEBUG callback: Token exchange failed:', err.message);
                 // Clear verifier and redirect to home
                 sessionStorage.removeItem('spotify_code_verifier');
-                window.location.href = '/Guess-The-Song/';
+                window.location.href = basePath;
             }
         }
 
         function showError(message) {
             document.querySelector('.loading').innerHTML =
                 '<p class="error">' + message + '</p>' +
-                '<p><a href="/Guess-The-Song/">Back to Home</a></p>';
+                '<p><a href="' + basePath + '">Back to Home</a></p>';
         }
 
         handleCallback();

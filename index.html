@@ -106,6 +106,14 @@
     <div class="error-text" id="error-text"></div>
   </div>
 
+  <script>
+    // 必須在 Spotify SDK 載入前定義這個 callback
+    window.onSpotifyWebPlaybackSDKReady = function() {
+      console.log('Spotify Web Playback SDK is ready');
+      // Flutter 會在需要時初始化 player
+    };
+  </script>
+
   <!-- Spotify Web Playback SDK - 非同步載入，不阻塞頁面 -->
   <script src="https://sdk.scdn.co/spotify-player.js" async defer onerror="handleSdkError()"></script>
 
@@ -128,10 +136,36 @@
       console.warn('Spotify SDK failed to load, but app will continue');
     }
 
+    // 檢查是否從 callback 重導向回來（有 token 但 Flutter 可能斷線）
+    // 如果 Flutter 沒有在 5 秒內載入，強制刷新頁面
+    var isFromCallback = sessionStorage.getItem('spotify_access_token') && !sessionStorage.getItem('flutter_loaded');
+    if (isFromCallback) {
+      setTimeout(function() {
+        if (!loadingHidden) {
+          console.log('Flutter not loaded after callback, forcing reload...');
+          sessionStorage.setItem('flutter_loaded', 'pending');
+          window.location.reload();
+        }
+      }, 5000);
+    }
     // Flutter 載入完成
     window.addEventListener('flutter-first-frame', function() {
+      sessionStorage.setItem('flutter_loaded', 'true');
       hideLoading();
     });
+
+    // 備用：檢查 Flutter app 是否已載入
+    var checkFlutterInterval = setInterval(function() {
+      // 檢查多種 Flutter 元素
+      var flutterView = document.querySelector('flt-glass-pane')
+        || document.querySelector('flutter-view')
+        || document.querySelector('flt-scene-host')
+        || document.querySelector('canvas');
+      if (flutterView) {
+        hideLoading();
+        clearInterval(checkFlutterInterval);
+      }
+    }, 200);
 
     // 10 秒後顯示提示
     setTimeout(function() {
@@ -142,6 +176,14 @@
         if (loadingText) loadingText.textContent = 'Still loading...';
       }
     }, 10000);
+
+    // 30 秒後強制隱藏 loading（避免無限等待）
+    setTimeout(function() {
+      if (!loadingHidden) {
+        console.warn('Force hiding loading after 30s timeout');
+        hideLoading();
+      }
+    }, 30000);
 
     // 每秒更新載入時間
     setInterval(function() {
